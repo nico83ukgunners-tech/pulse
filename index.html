@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0F1013">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pulse">
+<title>Pulse</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="view"></main>
+
+<div id="mini" class="mini hidden" role="region" aria-label="Lecture en cours">
+  <div class="mini-cover" id="miniCover"></div>
+  <div class="mini-info"><span id="miniTitle"></span><span id="miniArtist"></span></div>
+  <button id="miniPlay" class="icon-btn" aria-label="Lecture / pause"></button>
+</div>
+
+<nav class="tabs">
+  <button data-tab="library">Bibliothèque</button>
+  <button data-tab="groups">Groupes</button>
+  <button data-tab="player">Lecteur</button>
+</nav>
+
+<audio id="audio" preload="auto"></audio>
+<input id="fileInput" type="file" accept="audio/*,.mp3,.m4a,.aac,.flac,.wav,.ogg" multiple hidden>
+
+<script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
