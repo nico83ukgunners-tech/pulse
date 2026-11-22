@@ -72,3 +72,22 @@ h2 { font-size: 18px; font-weight: 700; margin: 22px 0 10px; }
 .seg button { padding: 8px 14px; border-radius: 16px; background: var(--surface); font-size: 13px; font-weight: 500; }
 .seg button.on { background: var(--text); color: #0F1013; font-weight: 600; }
 .empty { border: 1.5px dashed #3F424A; border-radius: 14px; padding: 22px; text-align: center; color: var(--muted); font-size: 14px; }
+
+/* ---- v2 : accueil, cartes, feuille d'options ---- */
+.tabs { grid-template-columns: repeat(4, 1fr); }
+.tabs button { font-size: 11px; }
+section { margin-bottom: 8px; }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; margin: 22px 0 10px; }
+.sec-head h2 { margin: 0; }
+.hscroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+.hscroll::-webkit-scrollbar { display: none; }
+.card { width: 124px; flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.card-cover { width: 124px; height: 124px; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Grotesk', Inter, sans-serif; font-weight: 700; font-size: 34px; background: #2A2D34; }
+.card-cover img { width: 100%; height: 100%; object-fit: cover; }
+.card-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.sheet { position: fixed; inset: 0; background: #000a; display: flex; align-items: flex-end; z-index: 9; }
+.sheet-box { background: var(--surface); width: 100%; border-radius: 18px 18px 0 0; padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+.group-card .chip-btn { flex-shrink: 0; height: 32px; padding: 0 12px; border-radius: 16px; font-size: 12px; font-weight: 600; border: 1px solid #3F424A; }
+.group-card .chip-btn.on { background: var(--accent); color: #0F1013; border-color: var(--accent); }
