@@ -43,11 +43,13 @@ const isAutoOn = (id) => !settings.disabledAuto.includes(id);
 /* ================= Groupes automatiques ================= */
 // kw : mots repérés dans le titre, l'artiste ou le genre du fichier.
 // bpm : plage de tempo [min, max[ (estimée à l'import, sur le téléphone).
+// Sport, Chill et Soirée s'excluent : chaque morceau n'a qu'une seule ambiance (la plus probable).
+// Matin est indépendant (il dépend de l'heure d'écoute).
 const AUTO = [
-  { id: 'sport', name: 'Sport', color: '#F97316', kw: ['sport', 'workout', 'gym', 'muscu', 'power', 'running', 'training', 'fitness', 'hiit', 'cardio', 'motivation', 'intense'], bpm: [120, 400] },
-  { id: 'chill', name: 'Chill', color: '#14B8A6', kw: ['chill', 'lofi', 'lo-fi', 'relax', 'calm', 'sleep', 'study', 'cozy', 'ambient', 'acoustic'], bpm: [0, 100] },
-  { id: 'soiree', name: 'Soirée', color: '#A855F7', kw: ['party', 'club', 'dance', 'edm', 'mashup', 'remix', 'festival', 'bass'], bpm: [110, 400] },
-  { id: 'matin', name: 'Matin', color: '#FACC15', kw: ['morning', 'wake', 'coffee', 'sunrise', 'fresh', 'good day'], bpm: null },
+  { id: 'sport', name: 'Sport', color: '#F97316', kw: ['workout', 'gym', 'muscu', 'running', 'training', 'fitness', 'hiit', 'cardio', 'sport', 'power', 'motivation', 'bodybuild'], bpm: [118, 400], exclusive: true },
+  { id: 'chill', name: 'Chill', color: '#14B8A6', kw: ['chill', 'lofi', 'lo-fi', 'relax', 'calm', 'sleep', 'study', 'ambient', 'acoustic', 'piano', 'jazz'], bpm: [0, 96], exclusive: true },
+  { id: 'soiree', name: 'Soirée', color: '#A855F7', kw: ['party', 'club', 'dance', 'edm', 'mashup', 'festival', 'house', 'techno', 'afterparty'], bpm: [112, 400], exclusive: true },
+  { id: 'matin', name: 'Matin', color: '#FACC15', kw: ['morning', 'wake', 'coffee', 'sunrise', 'good day'], bpm: null, exclusive: false },
 ];
 const AUTO_BY_ID = Object.fromEntries(AUTO.map((g) => [g.id, g]));
 
@@ -60,17 +62,37 @@ const SLOTS = [
 ];
 const inSlot = (hour, s) => (s.from < s.to ? hour >= s.from && hour < s.to : hour >= s.from || hour < s.to);
 
+// Score d'une ambiance : mots-clés trouvés dans le titre et le genre (x2) + tempo dans la plage (+1).
+function scoreAuto(t, g) {
+  const text = `${t.title} ${t.genre || ''}`.toLowerCase();
+  let s = 0;
+  for (const k of g.kw) if (text.includes(k)) s += 2;
+  if (g.bpm && t.bpm > 0 && t.bpm >= g.bpm[0] && t.bpm < g.bpm[1]) s += 1;
+  return s;
+}
+
 function autoGroupsFor(t) {
-  const text = `${t.title} ${t.artist} ${t.genre || ''}`.toLowerCase();
+  const ov = t.overrides || {};
   const out = new Set();
+
+  // 1) Ambiance principale : une seule parmi Sport / Chill / Soirée (la mieux notée)
+  let best = null, bestScore = 0;
   for (const g of AUTO) {
-    if (!isAutoOn(g.id)) continue;
-    if (g.kw.some((k) => text.includes(k))) out.add(g.id);
-    if (g.bpm && t.bpm > 0 && t.bpm >= g.bpm[0] && t.bpm < g.bpm[1]) out.add(g.id);
+    if (!g.exclusive || !isAutoOn(g.id)) continue;
+    const s = scoreAuto(t, g);
+    if (s > bestScore) { best = g.id; bestScore = s; }
   }
-  // « Matin » : écouté au moins 2 fois entre 5h et 11h
+  if (best) out.add(best);
+
+  // 2) « Matin » : écouté au moins 2 fois entre 5h et 11h, ou mot-clé dans le titre
   const morning = (t.plays || []).filter((p) => { const h = new Date(p).getHours(); return h >= 5 && h < 11; }).length;
-  if (isAutoOn('matin') && morning >= 2) out.add('matin');
+  if (isAutoOn('matin') && (morning >= 2 || AUTO_BY_ID.matin.kw.some((k) => t.title.toLowerCase().includes(k)))) out.add('matin');
+
+  // 3) Corrections manuelles de l'utilisateur : elles gagnent toujours
+  for (const [id, on] of Object.entries(ov)) {
+    if (!AUTO_BY_ID[id] || !isAutoOn(id)) continue;
+    if (on) out.add(id); else out.delete(id);
+  }
   return [...out];
 }
 
@@ -574,24 +596,54 @@ async function removeFromGroup(trackId, gid) {
   await reload();
 }
 
+// Feuille de réglage d'un morceau : ambiances automatiques (corrigeables) et groupes manuels.
 async function openTrackGroups(trackId) {
   const t = state.tracks.find((x) => x.id === trackId);
-  if (!state.groups.length) return alert("Crée d'abord un groupe dans l'onglet Groupes.");
-  const autoNames = autoGroupsFor(t).map((id) => AUTO_BY_ID[id].name).join(', ') || 'aucun';
   const ui = document.createElement('div');
   ui.className = 'sheet';
+  const drawChips = () => {
+    const current = autoGroupsFor(t);
+    const autoChips = AUTO.filter((g) => isAutoOn(g.id)).map((g) =>
+      `<button data-a="${g.id}" class="${current.includes(g.id) ? 'on' : ''}">${g.name}</button>`).join('');
+    const manualChips = state.groups.map((g) =>
+      `<button data-g="${g.id}" class="${t.groups.includes(g.id) ? 'on' : ''}">${esc(g.name)}</button>`).join('');
+    ui.querySelector('#autoChips').innerHTML = autoChips;
+    ui.querySelector('#manualChips').innerHTML = manualChips || '<span class="muted">Aucun groupe manuel.</span>';
+  };
   ui.innerHTML = `<div class="sheet-box">
     <h2 style="margin-top:0">${esc(t.title)}</h2>
-    <p class="muted" style="margin:0 0 12px">Automatique : ${esc(autoNames)}</p>
-    <div class="seg" id="gchips">${state.groups.map((g) => `<button data-g="${g.id}" class="${t.groups.includes(g.id) ? 'on' : ''}">${esc(g.name)}</button>`).join('')}</div>
+    <p class="muted" style="margin:0 0 6px">Ambiance (un seul choix : touche pour déplacer)</p>
+    <div class="seg" id="autoChips"></div>
+    <p class="muted" style="margin:10px 0 6px">Mes groupes</p>
+    <div class="seg" id="manualChips"></div>
     <button class="btn primary" id="closeGroups">Terminé</button>
   </div>`;
   document.body.appendChild(ui);
-  ui.querySelectorAll('[data-g]').forEach((b) => b.onclick = async () => {
-    const gid = b.dataset.g;
-    t.groups = t.groups.includes(gid) ? t.groups.filter((x) => x !== gid) : [...t.groups, gid];
-    await put('tracks', t);
-    b.classList.toggle('on');
+  drawChips();
+
+  ui.addEventListener('click', async (e) => {
+    const a = e.target.closest('[data-a]');
+    if (a) {
+      const id = a.dataset.a;
+      const on = autoGroupsFor(t).includes(id);
+      t.overrides = { ...(t.overrides || {}) };
+      // Déplacer : activer une ambiance désactive les deux autres
+      if (!on) {
+        AUTO.filter((g) => g.exclusive).forEach((g) => { t.overrides[g.id] = g.id === id; });
+      } else {
+        t.overrides[id] = false;
+      }
+      await put('tracks', t);
+      drawChips();
+      return;
+    }
+    const g = e.target.closest('[data-g]');
+    if (g) {
+      const gid = g.dataset.g;
+      t.groups = t.groups.includes(gid) ? t.groups.filter((x) => x !== gid) : [...t.groups, gid];
+      await put('tracks', t);
+      drawChips();
+    }
   });
   const close = async () => { ui.remove(); await reload(); };
   ui.querySelector('#closeGroups').onclick = close;
