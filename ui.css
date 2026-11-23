@@ -156,3 +156,17 @@ h1, h2, h3 { font-family: 'Space Grotesk', Inter, sans-serif; margin: 0; letter-
 .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 13px; background: #fff; transition: transform .2s; }
 .switch.on { background: var(--acc); }
 .switch.on::after { transform: translateX(22px); }
+
+/* Ajouts v6 */
+.tmain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.tt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tt b { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tt span { font-size: 13px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.trow .more { flex-shrink: 0; }
+.btn:disabled { opacity: .4; }
+.sheet-item { width: 100%; }
+.sheet-item .check { flex-shrink: 0; }
+.sheet-item .chk { margin-left: auto; }
+.toast { position: fixed; left: 16px; right: 16px; top: calc(var(--safe-t) + 14px); z-index: 60; background: #F5F5F7; color: #0B0C0F;
+  border-radius: 14px; padding: 12px 16px; font-size: 14px; font-weight: 700; box-shadow: 0 12px 30px rgba(0,0,0,.4); text-align: center; }
+.hero .sub { display: block; }

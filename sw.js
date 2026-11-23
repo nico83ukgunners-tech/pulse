@@ -1,4 +1,4 @@
-const CACHE = 'pulse-v5';
+const CACHE = 'pulse-v6';
 const SHELL = ['./', './index.html', './ui.css', './ui.js', './manifest.webmanifest', './icon.svg'];
 
 self.addEventListener('install', (e) => {
